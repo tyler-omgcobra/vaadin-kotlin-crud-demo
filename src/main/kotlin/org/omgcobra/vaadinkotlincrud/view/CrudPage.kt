@@ -37,7 +37,7 @@ class CrudPage(personDAO: PersonDAO): Composite<Div>() {
         }
 
         form.addCommitListener {
-            personDAO.save(it.bean)
+            form.binder.bean = personDAO.save(it.bean)
             grid.dataProvider.refreshItem(it.bean)
         }
     }

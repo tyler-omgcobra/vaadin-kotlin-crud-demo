@@ -17,6 +17,8 @@ repositories {
 }
 
 extra["vaadinVersion"] = "14.2.1"
+extra["kotestVersion"] = "4.1.0"
+extra["mockkVersion"] = "1.10.0"
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jdbc")
@@ -29,6 +31,8 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test") {
         exclude(group = "org.junit.vintage", module = "junit-vintage-engine")
     }
+    testImplementation("io.kotest:kotest-assertions-core-jvm:${property("kotestVersion")}")
+    testImplementation("io.mockk:mockk:${property("mockkVersion")}")
 }
 
 dependencyManagement {

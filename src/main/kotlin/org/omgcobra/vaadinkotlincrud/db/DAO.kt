@@ -14,7 +14,7 @@ import kotlin.reflect.*
 import kotlin.reflect.full.*
 
 abstract class DAO<T : Entity>(private val template: JdbcTemplate,
-                               private val entityType: KClass<T>) {
+                               private val entityType: KClass<T>) : ProvidesData<T, Map<String, String>> {
 
     private val table = entityType.findAnnotation<Table>()!!.value
 
@@ -22,47 +22,48 @@ abstract class DAO<T : Entity>(private val template: JdbcTemplate,
         DataProvider.fromFilteringCallbacks<T, Map<String, String>>(this::filter, this::count)
     }
 
-    private fun createEntity(supplier: (@ParameterName("property") KProperty<*>) -> Any?): T? {
-        val entity = entityType.createInstance()
-        entityType.memberProperties.filter { it.findAnnotation<Column>() != null }.forEach {
-            entity[it.name] = supplier(it)
+    override fun provide() = dataProvider
+
+    private fun createEntity(supplier: (@ParameterName("property") KProperty<*>) -> Any?): T {
+        val constructor = entityType.primaryConstructor ?: throw IllegalStateException("No primary constructor")
+        val entity = constructor.callBy(mapOf(
+                *entityType.keyColumnProperties.map {
+                    (constructor.findParameterByName(it.name)
+                            ?: throw IllegalStateException("Key not in primary constructor")) to supplier(it)
+                }.toTypedArray()
+        ))
+        return entity.apply {
+            entityType.columnProperties.forEach { set(it.name, supplier(it)) }
         }
-        return entity
     }
 
     private fun createEntity(resultSet: ResultSet, rowNum: Int): T? {
-        return createEntity { resultSet.getObject(getColumnName(it), (it.returnType.classifier as KClass<*>).javaObjectType) }
+        return createEntity { resultSet.getObject(it.columnName, (it.returnType.classifier as KClass<*>).javaObjectType) }
     }
 
-    private fun isKey(element: KAnnotatedElement?) = element?.findAnnotation<Key>() != null
+    private fun updateEntity(thing: T): T {
+        val properties = thing.nonKeys
+        val keys = thing.keys
 
-    private fun updateEntity(thing: T) {
-        val properties = entityType.memberProperties.filter { !isKey(it) }.map {
-            getColumnName(it) to it.getter.call(thing)
-        }
-        val keys = getKeyProperties().map {
-            getColumnName(it) to it.getter.call(thing)
-        }
-
-        val sets = properties.joinToString(separator = ", ") { "${it.first} = ?" }
-        val whereKeys = keys.joinToString(separator = " AND ") { "${it.first} = ?" }
+        val sets = properties.joinToString(separator = ", ") { "${it.name} = ?" }
+        val whereKeys = keys.joinToString(separator = " AND ") { "${it.name} = ?" }
 
         template.update("""UPDATE $table
                          | SET $sets
                          | WHERE $whereKeys""".trimMargin(),
-                *properties.map { it.second }.toTypedArray(),
-                *keys.map { it.second }.toTypedArray())
+                *properties.map { it.value }.toTypedArray(),
+                *keys.map { it.value }.toTypedArray())
 
         dataProvider.refreshItem(thing)
+
+        return thing
     }
 
-    private fun insertEntity(thing: T) {
-        val map = entityType.memberProperties
-                .filter { !isKey(it) }
-                .map { getColumnName(it) to it.getter.call(thing) }
-        val columns = map.joinToString(separator = ", ") { it.first }
+    private fun insertEntity(thing: T): T {
+        val map = thing.nonKeys
+        val columns = map.joinToString(separator = ", ") { it.name }
         val values = map.joinToString(separator = ", ") { "?" }
-        val keys = getKeyProperties().map { getColumnName(it) }
+        val keys = thing.keys.map { it.name }
 
         val keyHolder = GeneratedKeyHolder()
         template.update({ con ->
@@ -72,26 +73,24 @@ abstract class DAO<T : Entity>(private val template: JdbcTemplate,
 
             var n = 1
 
-            map.forEach { statement.setObject(n++, it.second) }
+            map.forEach { statement.setObject(n++, it.value) }
 
             statement
         }, keyHolder)
 
-        keyHolder.keys?.forEach { (key, value) -> thing[key] = value }
-
         dataProvider.refreshAll()
+
+        return createEntity { keyHolder.keys?.get(it.name) ?: thing[it.name] }
     }
 
-    fun saveEntity(thing: T) {
-        val existing = getKeyProperties().all { it.getter.call(thing) != null }
+    fun saveEntity(thing: T): T {
+        val existing = thing.keys.all { it.value != null }
 
-        if (existing) updateEntity(thing) else insertEntity(thing)
+        return if (existing) updateEntity(thing) else insertEntity(thing)
     }
 
-    private fun getKeyProperties() = entityType.memberProperties.filter { isKey(it) }
-    private fun getProperty(property: String) = entityType.memberProperties.first { it.name.equals(property, ignoreCase = true) }
-    private fun getColumnName(property: KProperty<*>) = property.findAnnotation<Column>()?.value ?: throw IllegalStateException("")
-    private fun getColumnName(property: String) = getColumnName(getProperty(property))
+    private fun getColumnName(property: String) = entityType.memberProperties
+            .first { it.name.equals(property, ignoreCase = true) }.columnName
 
     private fun filter(query: Query<T, Map<String, String>>) : Stream<T> {
         val where = where(query)
@@ -142,18 +141,16 @@ data class Where(val clause: String, private val valueList: List<Any>) {
     val values = valueList.toTypedArray()
 }
 
-interface ProvidesData<T : Entity> {
-    fun provide(): DataProvider<T, Map<String, String>>
+interface ProvidesData<T : Entity, F : Any> {
+    fun provide(): DataProvider<T, F>
 }
 
 @Repository
-class PersonDAO(template: JdbcTemplate) : DAO<Person>(template, Person::class), ProvidesData<Person> {
-    override fun provide() = dataProvider()
+class PersonDAO(template: JdbcTemplate) : DAO<Person>(template, Person::class) {
     fun save(thing: Person) = saveEntity(thing)
 }
 
 @Repository
-class ValueDAO(template: JdbcTemplate) : DAO<Basic>(template, Basic::class), ProvidesData<Basic> {
-    override fun provide() = dataProvider()
+class ValueDAO(template: JdbcTemplate) : DAO<Basic>(template, Basic::class) {
     fun save(thing: Basic) = saveEntity(thing)
 }
