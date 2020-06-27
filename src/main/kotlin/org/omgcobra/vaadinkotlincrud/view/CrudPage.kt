@@ -14,7 +14,9 @@ class CrudPage(personDAO: PersonDAO): Composite<Div>() {
         style["margin"] = "1em 5%"
     }
 
-    private val form = PersonForm()
+    private val form = PersonForm().apply {
+        content.style["margin"] = "1em 5%"
+    }
 
     init {
         content.apply {
@@ -29,15 +31,15 @@ class CrudPage(personDAO: PersonDAO): Composite<Div>() {
         }
 
         grid.dataProvider.addDataProviderListener {
-            grid.select(form.binder.bean)
+            grid.select(form.bean)
         }
 
         grid.addSelectionListener {
-            form.binder.bean = it.firstSelectedItem.orElseGet(Person::class::createInstance)
+            form.bean = it.firstSelectedItem.orElseGet(Person::class::createInstance)
         }
 
         form.addCommitListener {
-            form.binder.bean = personDAO.save(it.bean)
+            form.bean = personDAO.save(it.bean)
             grid.dataProvider.refreshItem(it.bean)
         }
     }

@@ -24,21 +24,8 @@ abstract class DAO<T : Entity>(private val template: JdbcTemplate,
 
     override fun provide() = dataProvider
 
-    private fun createEntity(supplier: (@ParameterName("property") KProperty<*>) -> Any?): T {
-        val constructor = entityType.primaryConstructor ?: throw IllegalStateException("No primary constructor")
-        val entity = constructor.callBy(mapOf(
-                *entityType.keyColumnProperties.map {
-                    (constructor.findParameterByName(it.name)
-                            ?: throw IllegalStateException("Key not in primary constructor")) to supplier(it)
-                }.toTypedArray()
-        ))
-        return entity.apply {
-            entityType.columnProperties.forEach { set(it.name, supplier(it)) }
-        }
-    }
-
     private fun createEntity(resultSet: ResultSet, rowNum: Int): T? {
-        return createEntity { resultSet.getObject(it.columnName, (it.returnType.classifier as KClass<*>).javaObjectType) }
+        return entityType.create { resultSet.getObject(it.columnName, (it.returnType.classifier as KClass<*>).javaObjectType) }
     }
 
     private fun updateEntity(thing: T): T {
@@ -80,7 +67,7 @@ abstract class DAO<T : Entity>(private val template: JdbcTemplate,
 
         dataProvider.refreshAll()
 
-        return createEntity { keyHolder.keys?.get(it.name) ?: thing[it.name] }
+        return entityType.create { keyHolder.keys?.get(it.name) ?: thing[it.name] }
     }
 
     fun saveEntity(thing: T): T {

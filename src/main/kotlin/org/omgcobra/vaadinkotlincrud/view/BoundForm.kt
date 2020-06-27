@@ -7,28 +7,34 @@ import com.vaadin.flow.component.formlayout.FormLayout
 import com.vaadin.flow.data.binder.Binder
 import com.vaadin.flow.shared.Registration
 import org.omgcobra.vaadinkotlincrud.db.Entity
+import org.omgcobra.vaadinkotlincrud.db.create
 import kotlin.reflect.KClass
 import kotlin.reflect.full.createInstance
 
 
-open class BoundForm<T : Entity>(typeClass: KClass<T>) : Composite<FormLayout>() {
+open class BoundForm<T : Entity>(private val typeClass: KClass<T>) : Composite<FormLayout>() {
     class CommitEvent<B : Entity>(source: BoundForm<B>, val bean: B) : ComponentEvent<BoundForm<B>>(source, false)
 
     protected val save = Button("Save").apply {
         addClickListener { commit() }
     }
 
-    val binder = Binder(typeClass.java).apply {
+    protected val binder = Binder(typeClass.java).apply {
         addStatusChangeListener { this@BoundForm.save.isEnabled = !it.hasValidationErrors() }
         bean = typeClass.createInstance()
     }
 
-    init {
+    var bean: T
+        get() = binder.bean
+        set(value) {
+            binder.bean = typeClass.create { it.getter.call(value) }
+        }
+
+    protected fun commit() {
+        if (binder.validate().isOk) {
+            fireEvent(CommitEvent(source = this, bean = bean))
+        }
     }
-
-    fun getBean(): T = binder.bean
-
-    protected fun commit(): Unit = fireEvent(CommitEvent(source = this, bean = this.binder.bean))
 
     fun addCommitListener(listener: (event: CommitEvent<T>) -> Unit): Registration =
             addListener(CommitEvent::class.java as Class<CommitEvent<T>>, listener)

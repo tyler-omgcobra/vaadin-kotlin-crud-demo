@@ -1,11 +1,14 @@
 package org.omgcobra.vaadinkotlincrud.db
 
+import java.lang.IllegalStateException
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty
 import kotlin.reflect.KProperty
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.findAnnotation
+import kotlin.reflect.full.findParameterByName
 import kotlin.reflect.full.memberProperties
+import kotlin.reflect.full.primaryConstructor
 
 @Target(AnnotationTarget.PROPERTY)
 annotation class Key
@@ -35,6 +38,20 @@ val <E : Entity> E.nonKeys: List<PropertyResult>
     get() = this::class.nonKeyColumnProperties.map { PropertyResult(it.columnName!!, it.getter.call(this)) }
 
 data class PropertyResult(val name: String, val value: Any?)
+
+fun <E : Entity> KClass<out E>.create(supplier: (@ParameterName("property") KProperty<*>) -> Any?): E {
+    val constructor = primaryConstructor ?: throw IllegalStateException("No primary constructor")
+    val entity = constructor.callBy(mapOf(
+            *keyColumnProperties.map {
+                (constructor.findParameterByName(it.name)
+                        ?: throw IllegalStateException("Key not in primary constructor")) to supplier(it)
+            }.toTypedArray()
+    ))
+    return entity.apply {
+        columnProperties.forEach { set(it.name, supplier(it)) }
+    }
+}
+
 
 interface Entity {
     operator fun get(name: String): Any? {

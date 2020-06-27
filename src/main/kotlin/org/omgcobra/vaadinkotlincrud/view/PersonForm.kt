@@ -20,7 +20,11 @@ class PersonForm : BoundForm<Person>(Person::class) {
     private val address = TextField("Email")
 
     init {
-        binder.forMemberField(address).withValidator(EmailValidator("Invalid email address"))
+        binder.forMemberField(firstName).asRequired()
+
+        binder.forMemberField(address)
+                .withValidator(EmailValidator("Invalid email address"))
+                .asRequired()
 
         binder.bindInstanceFields(this)
 
