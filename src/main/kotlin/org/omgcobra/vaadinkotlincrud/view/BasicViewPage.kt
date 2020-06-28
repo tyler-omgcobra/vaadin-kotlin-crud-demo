@@ -1,6 +1,7 @@
 package org.omgcobra.vaadinkotlincrud.view
 
 import com.vaadin.flow.component.Composite
+import com.vaadin.flow.component.orderedlayout.FlexComponent
 import com.vaadin.flow.component.orderedlayout.VerticalLayout
 import com.vaadin.flow.router.Route
 import org.omgcobra.vaadinkotlincrud.db.*
@@ -14,6 +15,7 @@ class BasicViewPage(valueDAO: ValueDAO): Composite<VerticalLayout>() {
 
     init {
         content.apply {
+            alignItems = FlexComponent.Alignment.STRETCH
             setSizeFull()
             add(grid)
         }

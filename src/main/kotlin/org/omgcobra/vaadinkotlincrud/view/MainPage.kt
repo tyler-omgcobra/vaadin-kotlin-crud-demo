@@ -3,41 +3,31 @@ package org.omgcobra.vaadinkotlincrud.view
 import com.vaadin.flow.component.Composite
 import com.vaadin.flow.component.UI
 import com.vaadin.flow.component.button.Button
-import com.vaadin.flow.component.html.Div
 import com.vaadin.flow.component.html.Label
+import com.vaadin.flow.component.orderedlayout.FlexComponent
+import com.vaadin.flow.component.orderedlayout.VerticalLayout
 import com.vaadin.flow.router.Route
 
 @Route("", layout = MainLayout::class)
-class MainPage: Composite<Div>() {
-    private val label = Label("hello world")
+class MainPage: Composite<VerticalLayout>() {
+    private val label = Label("hello world").apply {
+        style["font-weight"] = "bold"
+    }
+
     private val button = Button("click me").apply {
         addClickListener { clickButton() }
     }
+
     private val go = Button("go").apply {
         addClickListener { UI.getCurrent().navigate(CrudPage::class.java) }
     }
 
     init {
         content.apply {
-            add(
-                    label.apply {
-                        setId("helloLabel")
-                        style["font-weight"] = "bold"
-                    },
-                    button.apply {
-                        setId("clickMeButton")
-                    },
-                    go.apply {
-                        setId("goButton")
-                    }
-            )
-
+            alignItems = FlexComponent.Alignment.STRETCH
             setSizeFull()
-            style.apply {
-                set("background", "grey")
-                set("display", "flex")
-                set("flex-direction", "column")
-            }
+
+            add(label, button, go)
         }
     }
 
