@@ -18,31 +18,30 @@ import com.vaadin.flow.theme.lumo.Lumo
 class MainLayout: AppLayout(), RouterLayout, BeforeEnterObserver {
     private val buttonMap: Map<Class<out Component>, Button>
 
-    private val topBar = HorizontalLayout().apply {
-        defaultVerticalComponentAlignment = FlexComponent.Alignment.CENTER
-
-        buttonMap = mapOf(*UI.getCurrent().router.registry.registeredRoutes.map { it.navigationTarget }.map { page ->
-            val button = Button(page.getAnnotation(PageTitle::class.java).value).apply {
-                addClickListener { UI.getCurrent().navigate(page) }
-            }
-            add(button)
-            page to button
-        }.toTypedArray())
-
-        addAndExpand(Checkbox("Dark Mode").apply {
-            style["text-align"] = "right"
-            value = darkMode
-            addValueChangeListener { darkMode = it.value }
-        })
-    }
-
     private var darkMode: Boolean
         get() = Lumo.DARK in element.themeList
         set(value) { element.themeList.set(Lumo.DARK, value) }
 
     init {
-        addToNavbar(topBar)
         darkMode = true
+
+        addToNavbar(HorizontalLayout().apply {
+            defaultVerticalComponentAlignment = FlexComponent.Alignment.CENTER
+
+            buttonMap = mapOf(*UI.getCurrent().router.registry.registeredRoutes.map { it.navigationTarget }.map { page ->
+                val button = Button(page.getAnnotation(PageTitle::class.java).value).apply {
+                    addClickListener { UI.getCurrent().navigate(page) }
+                }
+                add(button)
+                page to button
+            }.toTypedArray())
+
+            addAndExpand(Checkbox("Dark Mode").apply {
+                style["text-align"] = "right"
+                value = darkMode
+                addValueChangeListener { darkMode = it.value }
+            })
+        })
     }
 
     override fun beforeEnter(event: BeforeEnterEvent?) {
