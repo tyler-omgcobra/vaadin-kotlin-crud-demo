@@ -3,10 +3,12 @@ package org.omgcobra.vaadinkotlincrud.view
 import com.vaadin.flow.component.Composite
 import com.vaadin.flow.component.orderedlayout.FlexComponent
 import com.vaadin.flow.component.orderedlayout.VerticalLayout
+import com.vaadin.flow.router.PageTitle
 import com.vaadin.flow.router.Route
 import org.omgcobra.vaadinkotlincrud.db.*
 import kotlin.reflect.full.createInstance
 
+@PageTitle("Form")
 @Route("form", layout = GridLayout::class)
 class CrudPage(personDAO: PersonDAO): Composite<VerticalLayout>() {
     private val grid: FilteredGrid<Person> = FilteredGrid(personDAO, Person::class).apply {

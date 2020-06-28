@@ -3,9 +3,11 @@ package org.omgcobra.vaadinkotlincrud.view
 import com.vaadin.flow.component.Composite
 import com.vaadin.flow.component.orderedlayout.FlexComponent
 import com.vaadin.flow.component.orderedlayout.VerticalLayout
+import com.vaadin.flow.router.PageTitle
 import com.vaadin.flow.router.Route
 import org.omgcobra.vaadinkotlincrud.db.*
 
+@PageTitle("Grid")
 @Route("grid", layout = GridLayout::class)
 class BasicViewPage(valueDAO: ValueDAO): Composite<VerticalLayout>() {
     private val grid: FilteredGrid<Basic> = FilteredGrid(valueDAO, Basic::class).apply {

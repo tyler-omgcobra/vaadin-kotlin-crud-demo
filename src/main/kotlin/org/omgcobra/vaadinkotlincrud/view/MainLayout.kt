@@ -1,5 +1,6 @@
 package org.omgcobra.vaadinkotlincrud.view
 
+import com.vaadin.flow.component.Component
 import com.vaadin.flow.component.UI
 import com.vaadin.flow.component.applayout.AppLayout
 import com.vaadin.flow.component.button.Button
@@ -8,14 +9,31 @@ import com.vaadin.flow.component.orderedlayout.FlexComponent
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout
 import com.vaadin.flow.router.BeforeEnterEvent
 import com.vaadin.flow.router.BeforeEnterObserver
+import com.vaadin.flow.router.PageTitle
 import com.vaadin.flow.router.RouterLayout
 import com.vaadin.flow.theme.Theme
 import com.vaadin.flow.theme.lumo.Lumo
 
 @Theme(value = Lumo::class)
 class MainLayout: AppLayout(), RouterLayout, BeforeEnterObserver {
+    private val buttonMap: Map<Class<out Component>, Button>
+
     private val topBar = HorizontalLayout().apply {
         defaultVerticalComponentAlignment = FlexComponent.Alignment.CENTER
+
+        buttonMap = mapOf(*UI.getCurrent().router.registry.registeredRoutes.map { it.navigationTarget }.map { page ->
+            val button = Button(page.getAnnotation(PageTitle::class.java).value).apply {
+                addClickListener { UI.getCurrent().navigate(page) }
+            }
+            add(button)
+            page to button
+        }.toTypedArray())
+
+        addAndExpand(Checkbox("Dark Mode").apply {
+            style["text-align"] = "right"
+            value = darkMode
+            addValueChangeListener { darkMode = it.value }
+        })
     }
 
     private var darkMode: Boolean
@@ -28,24 +46,8 @@ class MainLayout: AppLayout(), RouterLayout, BeforeEnterObserver {
     }
 
     override fun beforeEnter(event: BeforeEnterEvent?) {
-        topBar.removeAll()
-
-        listOf(
-                "Main" to MainPage::class,
-                "Form" to CrudPage::class,
-                "Grid" to BasicViewPage::class
-        ).forEach { pair ->
-            if (event?.navigationTarget?.equals(pair.second.java) != true) {
-                topBar.add(Button(pair.first).apply {
-                    addClickListener { UI.getCurrent().navigate(pair.second.java) }
-                })
-            }
+        buttonMap.forEach { (page, button) ->
+            button.isEnabled = page != event?.navigationTarget
         }
-
-        topBar.addAndExpand(Checkbox("Dark Mode").apply {
-            style["text-align"] = "right"
-            value = darkMode
-            addValueChangeListener { darkMode = it.value }
-        })
     }
 }

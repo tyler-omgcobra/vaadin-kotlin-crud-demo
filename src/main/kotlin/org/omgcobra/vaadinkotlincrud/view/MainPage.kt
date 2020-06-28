@@ -6,8 +6,10 @@ import com.vaadin.flow.component.button.Button
 import com.vaadin.flow.component.html.Label
 import com.vaadin.flow.component.orderedlayout.FlexComponent
 import com.vaadin.flow.component.orderedlayout.VerticalLayout
+import com.vaadin.flow.router.PageTitle
 import com.vaadin.flow.router.Route
 
+@PageTitle("Main")
 @Route("", layout = MainLayout::class)
 class MainPage: Composite<VerticalLayout>() {
     private val label = Label("hello world").apply {
