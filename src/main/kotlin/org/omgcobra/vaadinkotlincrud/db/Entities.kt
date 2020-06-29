@@ -73,15 +73,14 @@ data class Basic(@Key @Column("id") val differentNamedId: Int? = null) : Entity 
 }
 
 @Table("person")
-data class Person(@Key @Column("id") val id: Int? = null) : Entity {
-    @Column("first_name") var firstName: String = ""
-    @Column("last_name") var lastName: String = ""
-    @Column("street") var street: String = ""
-    @Column("city") var city: String = ""
-    @Column("state") var state: String = ""
-    @Column("zip") var zip: String = ""
-    @Column("email") var address: String = ""
-    @Column("area_code") var areaCode: String = ""
-    @Column("first_three") var firstThree: String = ""
-    @Column("last_four") var lastFour: String = ""
-}
+data class Person(@Key @Column("id") val id: Int? = null,
+    @Column("first_name") var firstName: String = "",
+    @Column("last_name") var lastName: String = "",
+    @Column("street") var street: String = "",
+    @Column("city") var city: String = "",
+    @Column("state") var state: String = "",
+    @Column("zip") var zip: String = "",
+    @Column("email") var address: String = "",
+    @Column("area_code") var areaCode: String = "",
+    @Column("first_three") var firstThree: String = "",
+    @Column("last_four") var lastFour: String = "") : Entity

@@ -41,7 +41,7 @@ abstract class DAO<T : Entity>(private val template: JdbcTemplate,
                 *properties.map { it.value }.toTypedArray(),
                 *keys.map { it.value }.toTypedArray())
 
-        dataProvider.refreshItem(thing)
+        dataProvider.refreshAll()
 
         return thing
     }

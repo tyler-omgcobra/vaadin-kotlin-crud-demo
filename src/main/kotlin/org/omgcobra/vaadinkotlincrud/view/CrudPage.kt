@@ -15,14 +15,17 @@ class CrudPage(personDAO: PersonDAO): Composite<VerticalLayout>() {
         setColumns(Person::id, Person::firstName, Person::lastName, Person::address, Person::street)
         setFilterColumns(Person::firstName, Person::lastName, Person::address, Person::street)
 
-        dataProvider.addDataProviderListener { select(form.bean) }
-        addSelectionListener { form.bean = it.firstSelectedItem.orElseGet(Person::class::createInstance) }
+        addSelectionListener { event ->
+            form.setBean(event.firstSelectedItem.orElseGet(Person::class::createInstance)) { select(it) }
+        }
     }
 
     private val form: PersonForm = PersonForm().apply {
         addCommitListener {
             bean = personDAO.save(it.bean)
-            grid.dataProvider.refreshItem(it.bean)
+            referenceBean = bean
+            grid.dataProvider.refreshAll()
+            grid.select(bean)
         }
     }
 
