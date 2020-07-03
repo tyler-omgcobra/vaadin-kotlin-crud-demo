@@ -1,23 +1,25 @@
 package org.omgcobra.vaadinkotlincrud.view
 
 import com.vaadin.flow.component.ComponentEvent
-import com.vaadin.flow.component.Composite
+import com.vaadin.flow.component.UI
 import com.vaadin.flow.component.button.Button
-import com.vaadin.flow.component.dialog.Dialog
 import com.vaadin.flow.component.formlayout.FormLayout
-import com.vaadin.flow.component.html.Label
 import com.vaadin.flow.data.binder.Binder
+import com.vaadin.flow.router.BeforeLeaveEvent
+import com.vaadin.flow.router.BeforeLeaveObserver
 import com.vaadin.flow.shared.Registration
+import com.vaadin.flow.theme.lumo.Lumo
 import org.omgcobra.vaadinkotlincrud.db.Entity
 import org.omgcobra.vaadinkotlincrud.db.create
 import kotlin.reflect.KClass
 import kotlin.reflect.full.createInstance
 
 
-open class BoundForm<T : Entity>(private val typeClass: KClass<T>) : Composite<FormLayout>() {
+open class BoundForm<T : Entity>(private val typeClass: KClass<T>) : FormLayout(), BeforeLeaveObserver {
     class CommitEvent<B : Entity>(source: BoundForm<B>, val bean: B) : ComponentEvent<BoundForm<B>>(source, false)
 
     protected val save = Button("Save").apply {
+        themeName = "primary"
         addClickListener { commit() }
     }
 
@@ -45,39 +47,17 @@ open class BoundForm<T : Entity>(private val typeClass: KClass<T>) : Composite<F
             proceed(value)
         }
 
-        val failure = {
-            val oldBean = bean
-            bean = referenceBean
-            proceed(referenceBean)
-            bean = oldBean
-        }
         if (referenceBean != bean) {
-            Dialog(Label("Save changes to bean?")).apply {
-                add(
-                        Button("Yes").apply {
-                            addClickListener {
-                                if (commit()) {
-                                    success()
-                                } else {
-                                    failure()
-                                }
-                                close()
-                            }
-                        },
-                        Button("No").apply {
-                            addClickListener {
-                                success()
-                                close()
-                            }
-                        },
-                        Button("Cancel").apply {
-                            addClickListener {
-                                failure()
-                                close()
-                            }
-                        }
-                )
-            }.open()
+            val failure: () -> Unit = {
+                val oldBean = bean
+                bean = referenceBean
+                proceed(referenceBean)
+                bean = oldBean
+                binder.validate()
+            }
+
+            val dark = UI.getCurrent().element.getChild(0).themeList.contains(Lumo.DARK)
+            ConfirmDialog("Save changes to bean?", this::commit, success, failure).open(dark)
         } else {
             success()
         }
@@ -92,6 +72,20 @@ open class BoundForm<T : Entity>(private val typeClass: KClass<T>) : Composite<F
         return false
     }
 
+    @Suppress("UNCHECKED_CAST")
     fun addCommitListener(listener: (event: CommitEvent<T>) -> Unit): Registration =
             addListener(CommitEvent::class.java as Class<CommitEvent<T>>, listener)
+
+    override fun beforeLeave(event: BeforeLeaveEvent?) {
+        event?.let {
+            val success = it.postpone()::proceed
+
+            if (referenceBean != bean) {
+                val dark = UI.getCurrent().element.getChild(0).themeList.contains(Lumo.DARK)
+                ConfirmDialog(message = "Save changes to bean?", commit = this::commit, success = success).open(dark)
+            } else {
+                success()
+            }
+        }
+    }
 }

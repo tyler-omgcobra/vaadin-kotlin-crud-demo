@@ -8,7 +8,8 @@ import org.omgcobra.vaadinkotlincrud.db.ProvidesData
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 
-class FilteredGrid<T : Entity>(provider: ProvidesData<T, Map<String, String>>, beanType: KClass<T>): Grid<T>(beanType.java, false) {
+class FilteredGrid<T : Entity>(provider: ProvidesData<T, Map<String, String>>,
+                               beanType: KClass<T>): Grid<T>(beanType.java, false) {
 
     private val wrapper = provider.provide().withConfigurableFilter()
 
